@@ -27,14 +27,16 @@ api_router = APIRouter(prefix="/api")
 # ---------- Models ----------
 class VisitorCreate(BaseModel):
     reason: str = Field(min_length=1, max_length=1000)
-    name: Optional[str] = Field(default=None, max_length=100)
+    name: str = Field(min_length=1, max_length=100)
+    contact: str = Field(min_length=1, max_length=200)
 
 
 class Visitor(BaseModel):
     model_config = ConfigDict(extra='ignore')
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     reason: str
-    name: Optional[str] = None
+    name: str
+    contact: str
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -61,7 +63,11 @@ async def root():
 
 @api_router.post("/visitors", response_model=Visitor)
 async def create_visitor(payload: VisitorCreate):
-    obj = Visitor(reason=payload.reason.strip(), name=(payload.name or "").strip() or None)
+    obj = Visitor(
+        reason=payload.reason.strip(),
+        name=payload.name.strip(),
+        contact=payload.contact.strip() if payload.contact else None,
+    )
     await db.visitors.insert_one(obj.model_dump())
     return obj
 
